@@ -1,55 +1,52 @@
 ﻿#include <iostream>
 #include <vector>
-
+#include <fstream>
 #include "A2CAgent.h"
 
-void PrintVector(const std::vector<int>& vec)
-{
-    for (const auto& value : vec)
-    {
-        std::cout << value << " ";
-    }
-    std::cout << std::endl;
-}
 
 int main()
 {
-    A2CAgent agent(5, 6, 5, 0.99f);
+    torch::manual_seed(1);
 
-    int act[] = { 3 };
-    const torch::Tensor torchAct = torch::from_blob(&act, { 1 }, torch::kInt32);
-    //torchAct.
-    torch::Tensor target = torch::randint(0, 10, { 10, });
-    std::cout << target << std::endl;
-    //std::cout << torchAct << std::endl;
-    auto onehotAction = torch::nn::functional::one_hot(target, 10);
-    std::cout << onehotAction << std::endl;
+    A2CAgent agent(5, 6, 3, /*df*/0.99f, /*lr*/0.01f, /*beta1*/0.9f, /*beta2*/0.999f);
+    int maxIter = 100;
 
-    //std::cout << onehotAction << std::endl;
+    std::vector<float> lossList;
 
-    std::vector<float> state({ 1.0f, 2.0f, 3.0f, 4.0f, 5.0f });
-    agent.SetStateNormalizeValue(3.0f, 2.0f);
+    std::ifstream fin("A2CAgent.pt");
+    if (fin.is_open())
+    {
+        torch::load(agent, "A2CAgent.pt");
+        std::cout << "File Exist" << std::endl;
+    }
 
-    //ModelOutput output = agent.Forward(state);
-    //std::cout << output << std::endl;
-    std::vector<int> action = agent.GetAction(state);
-    //std::cout << "===== Action =====\n" << action << std::endl;
-
-    //std::vector<float> nextState({ 5.0f, 4.0f, 3.0f, 2.0f, 1.0f });
-
-    //float reward = 1.5f;
-    //agent.TrainModel(state, action, reward, nextState);
-    
-    //for (const auto& policy : output.GetProbPolicy())
+    //std::ifstream fopti("Optimizer.pt");
+    //if (fopti.is_open())
     //{
-    //    std::cout << "policy:\n";
-    //    std::cout << policy << std::endl;
+    //    torch::load(*(agent->GetOptimizer()), "Optimizer.pt");
+    //    std::cout << "Optimizer File Exist" << std::endl;            
     //}
-    //std::cout << "value: " << output.GetValue();
 
-    //std::vector<int> action = agent.GetAction(state);
+    for (int i = 0; i < maxIter; i++)
+    {
+        torch::manual_seed(1);
 
-    //PrintVector(action);
+        std::vector<float> state({ 1.0f, 2.0f, 3.0f, 4.0f, 5.0f });
+        agent->SetStateNormalizeValue(3.0f, 2.0f);
 
-    std::cin.get();
+        std::vector<int> action = agent->GetAction(state);
+
+        std::vector<float> nextState({ 5.0f, 4.0f, 3.0f, 2.0f, 1.0f });
+
+        float reward = 1.5f;
+        lossList.push_back(agent->TrainModel(state, action, reward, nextState));
+    }
+
+    torch::save(agent, "A2CAgent.pt");
+    //torch::save(*(agent->GetOptimizer()), "Optimizer.pt");
+
+    for (int i = 0; i < maxIter; i++)
+    {
+        std::cout << i << "-th Iteration, Loss: " << lossList[i] << std::endl;
+    }
 }

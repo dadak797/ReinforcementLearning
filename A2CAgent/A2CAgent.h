@@ -3,13 +3,15 @@
 #include <torch/torch.h>
 #include <vector>
 #include <iostream>
+#include <memory>
 
 
 class ModelOutput
 {
     friend std::ostream& operator<<(std::ostream& os, const ModelOutput& output);
+
 public:
-    ModelOutput(std::vector<torch::Tensor> probPolicy, torch::Tensor value)
+    ModelOutput(torch::Tensor probPolicy, torch::Tensor value)
         : m_ProbPolicy(std::move(probPolicy)), m_Value(value)
     {
     }
@@ -20,34 +22,41 @@ public:
     {
     }
 
-    const std::vector<torch::Tensor>& GetProbPolicy() const { return m_ProbPolicy; }
+    const torch::Tensor& GetProbPolicy() const { return m_ProbPolicy; }
     const torch::Tensor& GetValue() const { return m_Value; }
 
 private:
-    std::vector<torch::Tensor> m_ProbPolicy;
+    torch::Tensor m_ProbPolicy;
     torch::Tensor m_Value;
 };
 
-class A2CAgent : public torch::nn::Module
+class A2CAgentImpl : public torch::nn::Module
 {
     using FCLayer = torch::nn::Linear;
 
 public:
-    A2CAgent(int stateSize, int hiddenSize, int actionSize, float discountFactor);
+    A2CAgentImpl(int stateSize, int hiddenSize, int actionSize, float discountFactor, float lr, float beta1, float beta2);
     ModelOutput Forward(std::vector<float>& state);
     const std::vector<int> GetAction(std::vector<float>& state);
     void SetStateNormalizeValue(float average, float std) { m_StateAverage = average; m_StateSTD = std; }
     void SetDevice(torch::Device device) { this->to(device); m_Device = device; }
-    void TrainModel(std::vector<float>& state, std::vector<int>& action, float reward, std::vector<float>& nextState);
+    float TrainModel(std::vector<float>& state, std::vector<int>& action, float reward, std::vector<float>& nextState);
+    std::shared_ptr<torch::optim::Adam> GetOptimizer() const { return m_Optimizer; }
 
 private:
     int m_StateSize, m_HiddenSize, m_ActionSize;
     float m_StateAverage, m_StateSTD;
     float m_DiscountFactor;
+    float m_Alpha;
     torch::Device m_Device;
+    const float m_SmallValue;
+
+    float m_LearningRate, m_Beta1, m_Beta2;
+    std::shared_ptr<torch::optim::Adam> m_Optimizer;
 
     FCLayer m_FCCommon;
     FCLayer m_FCPolicy0, m_FCPolicy1, m_FCPolicy2, m_FCPolicy3, m_FCPolicy4;
     FCLayer m_FCValue;
 };
 
+TORCH_MODULE(A2CAgent);
