@@ -20,13 +20,6 @@ int main()
         std::cout << "File Exist" << std::endl;
     }
 
-    //std::ifstream fopti("Optimizer.pt");
-    //if (fopti.is_open())
-    //{
-    //    torch::load(*(agent->GetOptimizer()), "Optimizer.pt");
-    //    std::cout << "Optimizer File Exist" << std::endl;            
-    //}
-
     for (int i = 0; i < maxIter; i++)
     {
         torch::manual_seed(1);
@@ -43,7 +36,6 @@ int main()
     }
 
     torch::save(agent, "A2CAgent.pt");
-    //torch::save(*(agent->GetOptimizer()), "Optimizer.pt");
 
     for (int i = 0; i < maxIter; i++)
     {

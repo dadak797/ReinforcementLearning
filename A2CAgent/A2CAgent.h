@@ -41,7 +41,6 @@ public:
     void SetStateNormalizeValue(float average, float std) { m_StateAverage = average; m_StateSTD = std; }
     void SetDevice(torch::Device device) { this->to(device); m_Device = device; }
     float TrainModel(std::vector<float>& state, std::vector<int>& action, float reward, std::vector<float>& nextState);
-    std::unique_ptr<torch::optim::Adam> GetOptimizer() const { return m_Optimizer; }
 
 private:
     int m_StateSize, m_HiddenSize, m_ActionSize;
